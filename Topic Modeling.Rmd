@@ -46,7 +46,6 @@ arrange(brief_word,desc(n))
 ```{r}
 #Add more "stop_words" and clean data
 stop_words <- rbind(stop_words,c("movie","SMART"),c("br","SMART"),c("film","SMART"),c("time","SMART"),c("story","SMART"),c("people","SMART"),c("bad","SMART"),c("watch","SMART"),c("movies","SMART"),c("characters","SMART"),c("character","SMART"),c("films","SMART"),c("scenes","SMART"),c("scene","SMART"),c("watching","SMART"),c("10","SMART"),c("times","SMART"))
-
 #Do it again and tidy the data
 book_words <- IMDB %>%
   unnest_tokens(word, review) %>%
@@ -142,10 +141,17 @@ title_word_pairs %>%
   theme_void()
 ```
 ```{r}
+<<<<<<< HEAD
+=======
+#tf_idf
+>>>>>>> 826be6f1bb65804d4e6285aa59a8d8a5348071ae
 IMDB_tf_idf <- IMDB_title %>% 
   count(docs, word, sort = TRUE) %>%
   bind_tf_idf(word, docs, n)
 IMDB_tf_idf %>% 
   arrange(-tf_idf)
 ```
+<<<<<<< HEAD
 
+=======
+>>>>>>> 826be6f1bb65804d4e6285aa59a8d8a5348071ae
