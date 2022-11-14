@@ -43,6 +43,7 @@ book_words_new <- left_join(book_words, total_words)
 brief_word <- book_words_new%>%count(word)
 arrange(brief_word,desc(n))
 ```
+This part shows the word that appears more frequently in statistics. The number of words“movie”, “film”,”bar” are the largest in the chart, but they are fuzzy words that are meaningless for classification, so we need to delete them to make the data clean.
 ```{r}
 #Add more "stop_words" and clean data
 stop_words <- rbind(stop_words,c("movie","SMART"),c("br","SMART"),c("film","SMART"),c("time","SMART"),c("story","SMART"),c("people","SMART"),c("bad","SMART"),c("watch","SMART"),c("movies","SMART"),c("characters","SMART"),c("character","SMART"),c("films","SMART"),c("scenes","SMART"),c("scene","SMART"),c("watching","SMART"),c("10","SMART"),c("times","SMART"))
@@ -62,18 +63,19 @@ IMDB_dtm <- book_words %>%
   cast_dtm(docs, word, n)
 IMDB_dtm
 ```
+## LDA
 ```{r}
 #Use LDA function to create a 10 topic model
 IMDB_lda <- LDA(IMDB_dtm, k = 10, control = list(seed = 1234))
 IMDB_lda
 ```
-
-
 ```{r}
 #Examine per-topic-per-word probabilities
 IMDB_topics <- tidy(IMDB_lda, matrix = "beta")
 IMDB_topics
 ```
+The column beta represents the probability of that term being generated from that topic for that document. It is the probability of that term belonging to that topic. And the value of beta are generally low in our data.
+
 ```{r}
 #Find the top 5 terms within each docs
 IMDB_top_terms <- IMDB_topics %>%
@@ -83,6 +85,7 @@ ungroup() %>%
 arrange(topic, -beta)
 IMDB_top_terms
 ```
+This table shows the five most occurring terms for each topic and their beta values accordingly.
 ```{r}
 #Make a ggplot2 visualization
 IMDB_top_terms %>%
@@ -94,11 +97,13 @@ IMDB_top_terms %>%
   labs(title = "Top 5 terms in each LDA topic",
        x = expression(beta), y = NULL)
 ```
+This part examine which topics are associated with which description fields and we use gamma to represent the probability that each document belongs in each topic. Probabilities vary a lot in the data frame, and our model has assigned a probability to each description belonging to each topic we constructed from the phrases. 
 ```{r}
 #Examine the probability each document belongs in each topic
 IMDB_lda_gamma <- tidy(IMDB_lda,matrix="gamma")
 IMDB_lda_gamma
 ```
+This part examine which topics are associated with which description fields and we use gamma to represent the probability that each document belongs in each topic. Probabilities vary a lot in the data frame, and our model has assigned a probability to each description belonging to each topic we constructed from the phrases. 
 ```{r}
 #Distribution of probablities for all topics
 ggplot(IMDB_lda_gamma, aes(gamma)) +
@@ -108,6 +113,7 @@ ggplot(IMDB_lda_gamma, aes(gamma)) +
        y = "Number of documents", x = expression(gamma))+
   xlim(0.05,0.3)
 ```
+This distribution shows that documents are being well discriminated as belonging to a topic or not. We can also look at how the probabilities are distributed within each topic. Notice that gamma runs near zero, which means there are many documents that do not belong in each topic and we need to change the number of topic we chose.
 ```{r}
 #Probability for each topic
 ggplot(IMDB_lda_gamma, aes(gamma, fill = as.factor(topic))) +
@@ -118,6 +124,8 @@ ggplot(IMDB_lda_gamma, aes(gamma, fill = as.factor(topic))) +
        y = "Number of documents", x = expression(gamma))+
   xlim(0.05,0.3)
 ```
+From these charts, we can see that the magnitude of the values in each topic is far from 1 and mostly concentrated around 0. This is because that in the processing of cleaning up the data, we removing the terms “movie”, “actor”,which appear most frequently in the ten topics, in order to make the data cleaner.
+## Pair words
 ```{r}
 #Count how many times each pair od words occur together
 IMDB_title <- book_words[,-3]
@@ -127,6 +135,7 @@ title_word_pairs <-IMDB_title %>%
   pairwise_count(word, docs, sort = TRUE, upper = FALSE)
 title_word_pairs
 ```
+This chart shows the number of the two most frequently occurring words after deleting the meaningless terms.
 ```{r}
 #Plot networks of these words
 set.seed(1234)
@@ -140,6 +149,8 @@ title_word_pairs %>%
                  point.padding = unit(0.2, "lines")) +
   theme_void()
 ```
+This chart is the visualization of the pairs of words that occur together most often in description fields. This plot displays ”minutes”,”acting”,”plot”,”real” tends to appear more often together.
+##Calculating tf-idf
 ```{r}
 #tf_idf
 IMDB_tf_idf <- IMDB_title %>% 
@@ -148,4 +159,4 @@ IMDB_tf_idf <- IMDB_title %>%
 IMDB_tf_idf %>% 
   arrange(-tf_idf)
 ```
-
+These are the most improtant words in IMDB measured by tf-idf.
