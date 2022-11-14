@@ -47,6 +47,16 @@ arrange(brief_word,desc(n))
 #Add more "stop_words" and clean data
 stop_words <- rbind(stop_words,c("movie","SMART"),c("br","SMART"),c("film","SMART"),c("time","SMART"),c("story","SMART"),c("people","SMART"),c("bad","SMART"),c("watch","SMART"),c("movies","SMART"),c("characters","SMART"),c("character","SMART"),c("films","SMART"),c("scenes","SMART"),c("scene","SMART"),c("watching","SMART"),c("10","SMART"),c("times","SMART"))
 
+#TF-IDF
+freq_by_rank <- book_words %>% 
+  group_by(docs) %>% 
+  mutate(rank = row_number(), 
+         `term frequency` = n/total) %>%
+  ungroup()
+book_tf_idf <- book_words %>%
+  bind_tf_idf(word, docs, n)
+book_tf_idf
+
 #Do it again and tidy the data
 book_words <- IMDB %>%
   unnest_tokens(word, review) %>%
