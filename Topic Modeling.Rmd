@@ -141,17 +141,11 @@ title_word_pairs %>%
   theme_void()
 ```
 ```{r}
-<<<<<<< HEAD
-=======
 #tf_idf
->>>>>>> 826be6f1bb65804d4e6285aa59a8d8a5348071ae
 IMDB_tf_idf <- IMDB_title %>% 
   count(docs, word, sort = TRUE) %>%
   bind_tf_idf(word, docs, n)
 IMDB_tf_idf %>% 
   arrange(-tf_idf)
 ```
-<<<<<<< HEAD
 
-=======
->>>>>>> 826be6f1bb65804d4e6285aa59a8d8a5348071ae
