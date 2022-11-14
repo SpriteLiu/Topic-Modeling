@@ -1,0 +1,147 @@
+---
+title: "Untitled"
+author: "Hsueh-Pin Liu"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Environment
+```{r pressure, echo=FALSE}
+#Library the packages used in Topic Modeling
+library(topicmodels)
+library(tidytext)
+library(ggplot2)
+library(dplyr)
+library(janeaustenr)
+library(widyr)
+library(igraph)
+library(ggraph)
+#Import data
+IMDB <- read.csv("~/Desktop/IMDB Dataset.csv")
+IMDB <- tibble(IMDB)
+#Add a column "docs"
+IMDB <- IMDB  %>%  mutate(docs = c(1:length(IMDB$review)))
+data(stop_words)
+```
+
+## Before making plots
+```{r}
+#Find word counts
+book_words <- IMDB %>%
+  unnest_tokens(word, review) %>%
+  anti_join(stop_words)%>%
+  count(docs, word, sort = TRUE)
+total_words <- book_words %>% 
+  group_by(docs) %>% 
+  summarize(total = sum(n))
+book_words_new <- left_join(book_words, total_words)
+#Take a brief look at the words
+brief_word <- book_words_new%>%count(word)
+arrange(brief_word,desc(n))
+```
+```{r}
+#Add more "stop_words" and clean data
+stop_words <- rbind(stop_words,c("movie","SMART"),c("br","SMART"),c("film","SMART"),c("time","SMART"),c("story","SMART"),c("people","SMART"),c("bad","SMART"),c("watch","SMART"),c("movies","SMART"),c("characters","SMART"),c("character","SMART"),c("films","SMART"),c("scenes","SMART"),c("scene","SMART"),c("watching","SMART"),c("10","SMART"),c("times","SMART"))
+
+#Do it again and tidy the data
+book_words <- IMDB %>%
+  unnest_tokens(word, review) %>%
+  anti_join(stop_words)%>%
+  count(docs, word, sort = TRUE)
+total_words <- book_words %>% 
+  group_by(docs) %>% 
+  summarize(total = sum(n))
+book_words_new <- left_join(book_words, total_words)
+book_words$docs <- as.character(book_words$docs)
+book_words <- tibble(book_words)
+#Cast a one-token-per-row table
+IMDB_dtm <- book_words %>%
+  cast_dtm(docs, word, n)
+IMDB_dtm
+```
+```{r}
+#Use LDA function to create a 10 topic model
+IMDB_lda <- LDA(IMDB_dtm, k = 10, control = list(seed = 1234))
+IMDB_lda
+```
+
+
+```{r}
+#Examine per-topic-per-word probabilities
+IMDB_topics <- tidy(IMDB_lda, matrix = "beta")
+IMDB_topics
+```
+```{r}
+#Find the top 5 terms within each docs
+IMDB_top_terms <- IMDB_topics %>%
+group_by(topic) %>%
+slice_max(beta, n = 5) %>% 
+ungroup() %>%
+arrange(topic, -beta)
+IMDB_top_terms
+```
+```{r}
+#Make a ggplot2 visualization
+IMDB_top_terms %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered()+
+  labs(title = "Top 5 terms in each LDA topic",
+       x = expression(beta), y = NULL)
+```
+```{r}
+#Examine the probability each document belongs in each topic
+IMDB_lda_gamma <- tidy(IMDB_lda,matrix="gamma")
+IMDB_lda_gamma
+```
+```{r}
+#Distribution of probablities for all topics
+ggplot(IMDB_lda_gamma, aes(gamma)) +
+  geom_histogram(alpha = 0.8) +
+  scale_y_log10() +
+  labs(title = "Distribution of probabilities for all topics",
+       y = "Number of documents", x = expression(gamma))+
+  xlim(0.05,0.3)
+```
+```{r}
+#Probability for each topic
+ggplot(IMDB_lda_gamma, aes(gamma, fill = as.factor(topic))) +
+  geom_histogram(alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~ topic, ncol = 4) +
+  scale_y_log10() +
+  labs(title = "Distribution of probability for each topic",
+       y = "Number of documents", x = expression(gamma))+
+  xlim(0.05,0.3)
+```
+```{r}
+#Count how many times each pair od words occur together
+IMDB_title <- book_words[,-3]
+IMDB_title <- tibble(IMDB_title)
+IMDB_title <- IMDB_title%>% anti_join(stop_words)
+title_word_pairs <-IMDB_title %>% 
+  pairwise_count(word, docs, sort = TRUE, upper = FALSE)
+title_word_pairs
+```
+```{r}
+#Plot networks of these words
+set.seed(1234)
+title_word_pairs %>%
+  filter(n >= 1000) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n, edge_width = n), edge_colour = "cyan4") +
+  geom_node_point(size = 1) +
+  geom_node_text(aes(label = name), repel = TRUE, 
+                 point.padding = unit(0.2, "lines")) +
+  theme_void()
+```
+
+
+
+
